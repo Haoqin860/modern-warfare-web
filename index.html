@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MODERN WARFARE // WEB</title>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #05060a; }
+  #app { position: fixed; inset: 0; }
+  canvas { display: block; }
+  #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+  #overlay {
+    position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; background: radial-gradient(ellipse at 50% 40%, rgba(8,12,20,.72), rgba(2,4,8,.94));
+    color: #e8eef5; font-family: 'Segoe UI', system-ui, sans-serif; text-align: center; cursor: pointer;
+    transition: opacity .5s ease;
+  }
+  #overlay.hidden { opacity: 0; pointer-events: none; }
+  #overlay h1 { font-size: clamp(28px, 6vw, 64px); letter-spacing: .18em; margin: 0 0 6px; font-weight: 800; color: #fff; text-shadow: 0 0 24px rgba(255,160,40,.35), 0 2px 8px rgba(0,0,0,.9); }
+  #overlay h1 span { color: #ff9a3d; }
+  #overlay .sub { font-size: clamp(13px, 2vw, 17px); letter-spacing: .42em; color: #9fb0c4; margin-bottom: 28px; text-transform: uppercase; }
+  #overlay .keys { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; max-width: 640px; margin-bottom: 34px; }
+  #overlay .key { font-size: 13px; color: #c7d3e2; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12); border-radius: 8px; padding: 10px 16px; }
+  #overlay .key b { color: #fff; }
+  #overlay .start { font-size: 15px; letter-spacing: .3em; color: #ffb066; border: 1px solid rgba(255,176,102,.5); padding: 14px 34px; border-radius: 6px; background: rgba(255,140,40,.08); animation: pulse 1.6s ease infinite; }
+  @keyframes pulse { 50% { box-shadow: 0 0 26px rgba(255,140,40,.35); } }
+  #fps { position: fixed; left: 10px; bottom: 8px; z-index: 30; color: rgba(255,255,255,.5); font: 12px/1.4 monospace; }
+</style>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="hud"></div>
+  <div id="overlay">
+    <h1>MODERN <span>WARFARE</span></h1>
+    <div class="sub">WEB EDITION — 3A Visual Target</div>
+    <div class="keys">
+      <div class="key"><b>WASD</b> Move</div>
+      <div class="key"><b>Mouse</b> Aim</div>
+      <div class="key"><b>LMB</b> Fire</div>
+      <div class="key"><b>RMB</b> ADS</div>
+      <div class="key"><b>R</b> Reload</div>
+      <div class="key"><b>Shift</b> Sprint</div>
+      <div class="key"><b>Ctrl</b> Crouch</div>
+      <div class="key"><b>Space</b> Jump</div>
+      <div class="key"><b>G</b> Grenade</div>
+      <div class="key"><b>1/2</b> Weapon</div>
+      <div class="key"><b>Esc</b> Pause</div>
+    </div>
+    <div class="start">CLICK TO DEPLOY</div>
+  </div>
+  <div id="fps"></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

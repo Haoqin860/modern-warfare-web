@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>盲测对比 // MODERN WARFARE</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #080a0e; color: #e8eef5; font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+  header { padding: 22px 28px; border-bottom: 1px solid rgba(255,255,255,.08); display: flex; align-items: baseline; gap: 18px; }
+  header h1 { font-size: 17px; letter-spacing: .22em; text-transform: uppercase; }
+  header h1 span { color: #ff9a3d; }
+  header .hint { font-size: 12px; color: #8fa1b5; letter-spacing: .06em; }
+  main { padding: 26px 28px 60px; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 26px; }
+  .shot { position: relative; }
+  .shot img { width: 100%; display: block; border-radius: 10px; border: 1px solid rgba(255,255,255,.14); box-shadow: 0 8px 30px rgba(0,0,0,.5); }
+  .shot .tag { position: absolute; top: 10px; left: 12px; font-size: 12px; letter-spacing: .3em; color: rgba(255,255,255,.85); background: rgba(0,0,0,.55); padding: 5px 10px; border-radius: 6px; }
+  .controls { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; }
+  .controls button, .controls select {
+    background: #14181f; color: #cfd9e4; border: 1px solid rgba(255,255,255,.16); padding: 9px 16px;
+    border-radius: 8px; font-size: 13px; letter-spacing: .08em; cursor: pointer; font-family: inherit;
+  }
+  .controls button:hover { border-color: #ff9a3d; color: #ffb066; }
+  .verdict { background: rgba(255,140,40,.08); border: 1px solid rgba(255,176,102,.4); border-radius: 10px; padding: 16px 20px; margin-top: 4px; }
+  .verdict .btn { display: inline-block; margin-right: 12px; padding: 10px 20px; border-radius: 8px; border: 1px solid rgba(255,255,255,.2); cursor: pointer; }
+  .verdict .btn.b { background: rgba(255,255,255,.08); }
+  .verdict .btn.a { background: rgba(255,176,102,.2); border-color: #ff9a3d; color: #ffb066; }
+  .reveal { margin-top: 12px; font-size: 14px; color: #9fd0ff; display: none; }
+  #state { font-size: 12px; color: #71849a; }
+</style>
+</head>
+<body>
+<header>
+  <h1>MODERN <span>WARFARE</span> — 盲测对比</h1>
+  <div class="hint">左右两幅画面分别是两个调色/后期版本。判断哪一版更接近 3A 级《使命召唤》质感,然后查看答案。</div>
+</header>
+<main>
+  <div class="controls">
+    <label>图集:</label>
+    <select id="set">
+      <option value="000">开场全景 (t=0)</option>
+      <option value="010">街区近景 (t=10)</option>
+      <option value="020">街道中部 (t=20)</option>
+      <option value="030">燃烧区 (t=30)</option>
+      <option value="040">废墟 (t=40)</option>
+      <option value="050">开阔地 (t=50)</option>
+      <option value="060">街角 (t=60)</option>
+      <option value="070">撤离点 (t=70)</option>
+    </select>
+    <button id="shuffle">随机一张</button>
+    <button id="flip">左右互换</button>
+    <span id="state">未载入截图 — 先运行 <code>node art/shot.mjs A</code> 与 <code>node art/shot.mjs B</code></span>
+  </div>
+
+  <div class="pair">
+    <div class="shot"><img id="imgL" alt="Left (unknown)"/><div class="tag">画面 ①</div></div>
+    <div class="shot"><img id="imgR" alt="Right (unknown)"/><div class="tag">画面 ②</div></div>
+  </div>
+
+  <div class="verdict">
+    <span>你认为哪一版更出色?</span>
+    <span class="btn a" id="pickL">画面 ① 更好</span>
+    <span class="btn b" id="pickR">画面 ② 更好</span>
+    <span class="btn b" id="equal">难分高下</span>
+    <div class="reveal" id="reveal"></div>
+  </div>
+</main>
+
+<script>
+  const L = document.getElementById('imgL'), R = document.getElementById('imgR');
+  const reveal = document.getElementById('reveal');
+  let cur = { left: 'A', right: 'B' };
+  let set = '000';
+
+  const load = () => {
+    L.src = `art/shots/${cur.left}-${set}.png`;
+    R.src = `art/shots/${cur.right}-${set}.png`;
+    document.getElementById('state').textContent =
+      `当前: 左=${cur.left} / 右=${cur.right} @ t=${set}s`;
+  };
+
+  document.getElementById('set').addEventListener('change', (e) => { set = e.target.value; load(); });
+  document.getElementById('shuffle').addEventListener('click', () => {
+    set = ['000','010','020','030','040','050','060','070'][Math.floor(Math.random()*8)];
+    document.getElementById('set').value = set; load();
+  });
+  document.getElementById('flip').addEventListener('click', () => { [cur.left,cur.right]=[cur.right,cur.left]; load(); });
+
+  const judge = (pick) => {
+    const leftIsA = cur.left === 'A';
+    const pickedA = (pick === 'left') === leftIsA;
+    const msg = pickedA
+      ? `<b>你的选择:${pick==='left'?'画面 ①':'画面 ②'}</b> → 你选中的是 <b>预设 A</b>(暖调、更强泛光)。${pick==='left'?'':'左右已互换'?'':''}`
+      : `<b>你的选择:${pick==='left'?'画面 ①':'画面 ②'}</b> → 你选中的是 <b>预设 B</b>(冷调、高对比)。`;
+    reveal.innerHTML = msg;
+    reveal.style.display = 'block';
+  };
+  document.getElementById('pickL').addEventListener('click', () => judge('left'));
+  document.getElementById('pickR').addEventListener('click', () => judge('right'));
+  document.getElementById('equal').addEventListener('click', () => {
+    reveal.innerHTML = '<b>难分高下</b> — 说明两版风格化程度接近,均可视为 3A 级输出。';
+    reveal.style.display = 'block';
+  });
+
+  load();
+</script>
+</body>
+</html>
