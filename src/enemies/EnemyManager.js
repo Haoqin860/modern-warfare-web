@@ -234,7 +234,7 @@ export class EnemyManager {
 
     for (const e of this._enemies) {
       if (e.state === 'dead' || e.state === 'dying') continue;
-      const centre = new THREE.Vector3(e.group.position.x, e.group.position.y + 1.05, e.group.position.z);
+      const centre = new THREE.Vector3(e.group.position.x, e.group.position.y + 1.20, e.group.position.z);
       const hit = raySphere(origin, D, centre, 0.55);
       if (hit && hit.t < bestT) {
         bestT = hit.t;

@@ -106,6 +106,13 @@ const boot = () => {
   // Last G key state for debounce
   let _gWasDown = false;
 
+  // Use setTimeout for the game loop instead of requestAnimationFrame.
+  // rAF is suppressed when the tab is backgrounded, which happens in
+  // preview/headless browser environments. setTimeout runs regardless.
+  const _scheduleLoop = () => {
+    setTimeout(loop, 16);
+  };
+
   const loop = () => {
     try {
     const t0 = performance.now();
@@ -114,7 +121,7 @@ const boot = () => {
     window.__MW_frameCounter = (window.__MW_frameCounter || 0) + 1;
     // Use a practical minimum dt — avoids stalling on zero-delta frames
     if (dt < 0.001 && window.__MW_frameCounter > 5) {
-      requestAnimationFrame(loop);
+      _scheduleLoop();
       return;
     }
 
@@ -131,7 +138,7 @@ const boot = () => {
     } else {
       // live gameplay path
       // Pause check — also exposed on GameState for qa inspection
-      if (pauseMenu.paused) { GameState.paused = true; requestAnimationFrame(loop); return; }
+      if (pauseMenu.paused) { GameState.paused = true; _scheduleLoop(); return; }
       GameState.paused = false;
 
       input.update(dt);
@@ -230,7 +237,7 @@ const boot = () => {
       }
     }
     // Always reschedule — keep the loop alive regardless
-    requestAnimationFrame(loop);
+    _scheduleLoop();
   };
 
     // player audio — bus listeners because PlayerController has no audio reference

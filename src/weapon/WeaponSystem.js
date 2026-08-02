@@ -349,10 +349,10 @@ export class WeaponSystem {
     for (const e of enemies) {
       if (!e.group || !e.id || e.hp <= 0) continue;
       // Enemy bounds sphere centered at chest height (matches EnemyManager.hitEnemy)
-      _sc.set(e.group.position.x, e.group.position.y + 1.05, e.group.position.z);
+      _sc.set(e.group.position.x, e.group.position.y + 1.20, e.group.position.z);
       const sr = 0.55;
 
-      _sphereOc.subVectors(camPos, _sc);
+      _sphereOc.subVectors(_worldMuzzle, _sc);
       const a = fireDir.dot(fireDir);
       const b = 2 * _sphereOc.dot(fireDir);
       const c = _sphereOc.dot(_sphereOc) - sr * sr;
@@ -367,7 +367,7 @@ export class WeaponSystem {
         bestDist = t;
         bestEnemy = e;
         bestId = e.id;
-        _hitPt.copy(camPos).addScaledVector(fireDir, t);
+        _hitPt.copy(_worldMuzzle).addScaledVector(fireDir, t);
         _hitNorm.copy(_hitPt).sub(_sc).normalize();
         bestHS = _hitPt.y > _sc.y + sr * 0.55;
         // Clone the hit point / normal since we reuse the scratch buffers
