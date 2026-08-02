@@ -13,6 +13,7 @@ import { bus } from '../core/Events.js';
 import { CollisionWorld } from '../world/Collision.js';
 
 const _v3 = new THREE.Vector3();
+const _yv3 = new THREE.Vector3(); // reusable scratch for vertical boost
 
 // Active grenades tracked globally (cleaned per-frame by World)
 /** @type {Array<{
@@ -85,7 +86,7 @@ export function throwGrenade(origin, direction, scene, cookTime = 0) {
 
   g.mesh.position.copy(origin).addScaledVector(direction, 0.3);
   g.vel.copy(direction).multiplyScalar(cfg.throwForce).add(
-    new THREE.Vector3(0, cfg.throwUp, 0)
+    _yv3.set(0, cfg.throwUp, 0)
   );
   g.timer = 0;
   g.fuseTime = cfg.fuseTime;
@@ -133,7 +134,7 @@ export function explodeGrenade(g, enemies, barrels, world, particles, fx, audio,
     speed: 3,
     life: 0.8,
   });
-  audio.explosion();
+  audio.explosion(pos);
 
   // Damage nearby enemies
   if (enemies) {
@@ -178,7 +179,7 @@ export function explodeGrenade(g, enemies, barrels, world, particles, fx, audio,
               speed: 5,
               life: 0.6,
             });
-            audio.explosion();
+            audio.explosion(pos);
             // Damage enemies near the barrel too
             if (enemies) {
               for (const e of enemies) {

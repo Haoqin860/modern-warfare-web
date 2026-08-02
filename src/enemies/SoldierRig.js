@@ -42,22 +42,22 @@ export function createSoldier(seed = 1) {
     return h.getHex();
   };
 
-  const khaki = jit('#8a7a5e', 0.06);
-  const vest = jit('#5d513c', 0.04);
-  const helmet = jit('#3c382e', 0.04);
-  const face = jit('#4a3f34', 0.04);
+  const khaki = jit('#9d8a6a', 0.06);
+  const vest = jit('#6b5c44', 0.04);
+  const helmet = jit('#4a4538', 0.04);
+  const face = jit('#5a4c3e', 0.04);
   const darkMetal = new THREE.MeshStandardMaterial({
-    color: 0x4a4a4a,
+    color: 0x5a5a5a,
     metalness: 0.6,
     roughness: 0.4,
   });
 
-  const matTorso = new THREE.MeshStandardMaterial({ color: khaki });
-  const matLeg = new THREE.MeshStandardMaterial({ color: khaki });
-  const matArm = new THREE.MeshStandardMaterial({ color: khaki });
-  const matVest = new THREE.MeshStandardMaterial({ color: vest });
-  const matHelmet = new THREE.MeshStandardMaterial({ color: helmet });
-  const matFace = new THREE.MeshStandardMaterial({ color: face });
+  const matTorso = new THREE.MeshStandardMaterial({ color: khaki, emissive: 0x1a1408, emissiveIntensity: 0.25 });
+  const matLeg = new THREE.MeshStandardMaterial({ color: khaki, emissive: 0x1a1408, emissiveIntensity: 0.25 });
+  const matArm = new THREE.MeshStandardMaterial({ color: khaki, emissive: 0x1a1408, emissiveIntensity: 0.25 });
+  const matVest = new THREE.MeshStandardMaterial({ color: vest, emissive: 0x140f06, emissiveIntensity: 0.25 });
+  const matHelmet = new THREE.MeshStandardMaterial({ color: helmet, emissive: 0x0f0c08, emissiveIntensity: 0.25 });
+  const matFace = new THREE.MeshStandardMaterial({ color: face, emissive: 0x100c08, emissiveIntensity: 0.2 });
 
   // ----- group -----
   const group = new THREE.Group();

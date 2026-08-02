@@ -167,6 +167,11 @@ export class WeaponSystem {
   /** Wire enemy manager reference after construction (called from main.js). */
   setEnemyManager(em) { this._enemyManager = em; }
 
+  /**
+   * Swap between primary (HK416) and pistol slots.
+   * Called from main.js on 1/2 digit key press.
+   */
+
   /** Swap to primary weapon (HK416). */
   swapToPrimary() {
     if (this._slot === 'primary') return;
@@ -478,7 +483,7 @@ export class WeaponSystem {
       }
 
       // ── manual reload ──
-      if (this.input.key && this.input.key('KeyR')) {
+      if (this.input.has && this.input.has('KeyR')) {
         this.reload();
       }
     }

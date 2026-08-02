@@ -119,13 +119,13 @@ export const PRESETS = {
   A: {
     label: 'A',
     grade: {
-      saturation: 1.08, contrast: 1.04, gamma: 1.0,
-      lift: [0.012, 0.006, 0.0],      // warm shadows
+      saturation: 1.22, contrast: 1.06, gamma: 1.0,
+      lift: [0.055, 0.048, 0.042],    // lifted warm shadows (shadow retention)
       gain: [1.02, 0.99, 0.94],       // warm highlights
       tealShadow: 0.05,
     },
     bloom: { strength: 0.95, radius: 0.75, threshold: 0.62 },
-    vignette: 0.38,
+    vignette: 0.30,
     grain: 0.03,
     ca: 0.0014,
   },

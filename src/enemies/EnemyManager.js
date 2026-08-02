@@ -14,6 +14,7 @@ import * as THREE from 'three';
 import { CFG } from '../core/Config.js';
 import { GameState } from '../core/GameState.js';
 import { bus } from '../core/Events.js';
+import { CollisionWorld } from '../world/Collision.js';
 import { createSoldier } from './SoldierRig.js';
 
 /* ------------------------------------------------------------------ */
@@ -86,6 +87,10 @@ export class EnemyManager {
     this._muzzle = new THREE.Vector3();
     this._muzzleDir = new THREE.Vector3();
 
+    // Reusable raycaster for line-of-sight checks (avoid per-shot allocation)
+    this._losRay = new THREE.Raycaster();
+    this._losRay.far = 120;
+
     // listen for weapon hits from WeaponSystem
     bus.on('weapon:hit', ({ id, dmg, hitPos, normal, headshot }) => {
       this.damageEnemy(id, dmg, hitPos, normal, headshot);
@@ -152,9 +157,14 @@ export class EnemyManager {
       this._updateAI(dt, e, playerAlive);
       this._updateWalkAnim(dt, e);
       this._updateHitFlash(dt, e);
+
+      // Out-of-bounds cleanup: remove enemies that stray >150m from origin
+      const oobDist = e.group.position.lengthSq();
+      if (oobDist > 22500) { // 150^2
+        this._removeEnemy(e);
+      }
     }
 
-    this._updateDying(dt);
     this._syncGameState();
   }
 
@@ -224,11 +234,12 @@ export class EnemyManager {
 
     for (const e of this._enemies) {
       if (e.state === 'dead' || e.state === 'dying') continue;
-      const centre = _v3.set(e.group.position.x, e.group.position.y + 1.05, e.group.position.z);
+      const centre = new THREE.Vector3(e.group.position.x, e.group.position.y + 1.05, e.group.position.z);
       const hit = raySphere(origin, D, centre, 0.55);
       if (hit && hit.t < bestT) {
         bestT = hit.t;
-        best = { id: e.id, pos: hit.pos, normal: hit.normal, enemy: e };
+        best = { id: e.id, pos: hit.pos, normal: hit.normal, enemy: e,
+                 headshot: hit.pos.y > centre.y + 0.55 * 0.55 };
       }
     }
     return best;
@@ -272,7 +283,9 @@ export class EnemyManager {
 
       if (this.world.collides) {
         _v3.set(x, Math.max(safeY + 0.5, 0.5), z);
-        if (this.world.collides(_v3)) continue;
+        if (this.world.collides(_v3)) {
+          continue;
+        }
       }
 
       return _v3.set(x, safeY, z);
@@ -360,6 +373,16 @@ export class EnemyManager {
     e.group.position.x += moveDir.x * speed * dt;
     e.group.position.z += moveDir.z * speed * dt;
 
+    // Collision resolution against world geometry
+    const resolved = CollisionWorld.resolveCircle(
+      e.group.position.clone(),
+      0.35,
+      e.group.position.y,
+      e.group.position.y + 1.8
+    );
+    e.group.position.x = resolved.x;
+    e.group.position.z = resolved.z;
+
     if (this.world.groundAt) {
       e.group.position.y = this.world.groundAt(e.group.position.x, e.group.position.z);
     }
@@ -394,17 +417,16 @@ export class EnemyManager {
     this.fx.tracer(this._muzzle.clone(), playerPos.clone(), 0xff6a4a);
     this._muzzleDir.copy(playerPos).sub(this._muzzle).normalize();
     this.fx.muzzle(this._muzzle.clone(), this._muzzleDir.clone(), 0xff7a4a, 0.8);
-    this.audio.enemyShot();
+    this.audio.enemyShot(this._muzzle);
 
     // Line-of-sight check: only hit the player if there is no world geometry in between
     if (Math.random() >= CFG.enemy.accuracy) return;
     const losDir = _v3.copy(playerPos).sub(this._muzzle).normalize();
     const losOrigin = this._muzzle.clone();
     if (this.world.raycastables && this.world.raycastables.length) {
-      const _losRay = new (THREE.Raycaster)();
-      _losRay.set(losOrigin, losDir);
-      _losRay.far = playerPos.distanceTo(losOrigin) + 0.5;
-      const hits = _losRay.intersectObjects(this.world.raycastables, false);
+      this._losRay.set(losOrigin, losDir);
+      this._losRay.far = playerPos.distanceTo(losOrigin) + 0.5;
+      const hits = this._losRay.intersectObjects(this.world.raycastables, false);
       if (hits.length > 0) return; // blocked by world geometry
     }
 
@@ -491,7 +513,7 @@ export class EnemyManager {
     );
 
     this.fx.explosion(e.group.position.clone(), 0.5);
-    this.audio.explosion();
+    this.audio.explosion(e.group.position);
     this.particles.burst(e.group.position.clone().add(_v3.set(0, 1.0, 0)), 10, {
       color: 0x8b0000,
       size: 0.08,

@@ -12,10 +12,12 @@ const MAX_SMOKES      = 40;
 const MAX_HITMARKERS  = 8;
 const MAX_EXPLOSIONS  = 4;
 const MAX_MUZZLE_LTS  = 4;
+const MAX_MUZZLE_FLASHES = 4;
 
 // --- reusable scratch vectors ---
 const _v3   = () => new THREE.Vector3();
 const _col  = () => new THREE.Color();
+const _quat = new THREE.Quaternion();
 
 // --- hitmarker canvas texture (X inside ring) ---
 let _hitTex = null;
@@ -75,21 +77,21 @@ export class FX {
       this._muzzleLights.push({ light: lt, active: false, timer: 0, life: 0.05, decay: 14 });
     }
     this._muzzleNext = 0;
+    this._muzzleSpriteNext = 0;
 
-    // single shared muzzle sprite (flashes are brief, reuse is fine)
-    {
+    this._muzzleSprites = [];
+    for (let i = 0; i < MAX_MUZZLE_FLASHES; i++) {
       const mat = new THREE.SpriteMaterial({
         map: glowTex, blending: THREE.AdditiveBlending,
         depthTest: true, depthWrite: false, transparent: true,
         color: 0xffc27a, opacity: 0,
       });
-      this._muzzleSprite = new THREE.Sprite(mat);
-      this._muzzleSprite.scale.set(0.35, 0.35, 1);
-      this._muzzleSprite.frustumCulled = false;
-      this._muzzleSprite.visible = false;
-      r.scene.add(this._muzzleSprite);
-      this._muzzleTimer = 0;
-      this._muzzleLife  = 0.05;
+      const sp = new THREE.Sprite(mat);
+      sp.scale.set(0.35, 0.35, 1);
+      sp.frustumCulled = false;
+      sp.visible = false;
+      r.scene.add(sp);
+      this._muzzleSprites.push({ sprite: sp, active: false, timer: 0, life: 0.05 });
     }
 
     /* ====================== TRACER POOL ====================== */
@@ -202,15 +204,18 @@ export class FX {
 
   /** Muzzle flash at world-space `pos`, firing toward `dir`. */
   muzzle(pos, dir, color = 0xffc27a, scale = 1) {
-    // sprite
-    const s = this._muzzleSprite;
-    s.position.copy(pos);
-    s.material.color.set(color);
-    s.material.opacity = 0.9;
+    // allocate a muzzle sprite from the pool
+    const ms = _alloc(this._muzzleSprites, '_muzzleSpriteNext', this);
+    ms.sprite.position.copy(pos);
+    ms.sprite.material.color.set(color);
+    ms.sprite.material.opacity = 0.9;
     const sz = 0.3 * scale;
-    s.scale.set(sz, sz, 1);
-    s.visible = true;
-    s.material.rotation = rand(-0.4, 0.4);  // slight random rotation per shot
+    ms.sprite.scale.set(sz, sz, 1);
+    ms.sprite.visible = true;
+    ms.sprite.material.rotation = rand(-0.4, 0.4);
+    ms.active = true;
+    ms.timer = 0;
+    ms.life = 0.05;
 
     // light
     const l = _alloc(this._muzzleLights, '_muzzleNext', this);
@@ -220,10 +225,7 @@ export class FX {
     l.light.visible = true;
     l.active  = true;
     l.timer   = 0;
-    l.life    = this._muzzleLife;
     l.decay   = 14;
-
-    this._muzzleTimer = 0;
   }
 
   /** Spawn a tracer from `from` to `to`. */
@@ -270,7 +272,7 @@ export class FX {
         Math.cos(phi),
         Math.sin(phi) * Math.sin(theta),
       );
-      const q = new THREE.Quaternion().setFromUnitVectors(
+      const q = _quat.setFromUnitVectors(
         _v3().set(0, 1, 0), nrm,
       );
       local.applyQuaternion(q);
@@ -396,14 +398,19 @@ export class FX {
   update(dt, time, cameraPos) {
     const d = Math.min(dt, 0.1);
 
-    // --- muzzle sprite (shared, single) ---
-    this._muzzleTimer += d;
-    if (this._muzzleTimer >= this._muzzleLife) {
-      this._muzzleSprite.visible = false;
-      this._muzzleSprite.material.opacity = 0;
-    } else {
-      const t = this._muzzleTimer / this._muzzleLife;
-      this._muzzleSprite.material.opacity = 0.9 * (1 - t * t);
+    // --- muzzle sprites (pooled) ---
+    for (let i = 0; i < MAX_MUZZLE_FLASHES; i++) {
+      const ms = this._muzzleSprites[i];
+      if (!ms.active) continue;
+      ms.timer += d;
+      if (ms.timer >= ms.life) {
+        ms.active = false;
+        ms.sprite.visible = false;
+        ms.sprite.material.opacity = 0;
+      } else {
+        const t = ms.timer / ms.life;
+        ms.sprite.material.opacity = 0.9 * (1 - t * t);
+      }
     }
 
     // --- muzzle lights ---

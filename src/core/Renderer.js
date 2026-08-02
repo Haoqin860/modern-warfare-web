@@ -13,10 +13,14 @@ export class GameRenderer {
       antialias: true,
       powerPreference: 'high-performance',
       stencil: false,
+      preserveDrawingBuffer: true,
     });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    // Tone mapping happens ONCE in the PostFX GradeShader (Narkowicz ACES).
+    // Keeping the renderer's own ACES here would double-map through OutputPass
+    // and crush shadows; the grade shader owns the filmic curve.
+    this.renderer.toneMapping = THREE.NoToneMapping;
     this.renderer.toneMappingExposure = 1.35;
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;

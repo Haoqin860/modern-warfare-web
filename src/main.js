@@ -47,6 +47,7 @@ const boot = () => {
   const weapon = new WeaponSystem(r, input, player, world, particles, fx, audio);
   const enemies = new EnemyManager(r, world, player, particles, fx, audio);
   weapon.setEnemyManager(enemies);
+  window.__MW_enemyManager = enemies; // expose for QA
 
   // Wire fire zones from WorldBuilder to Particles for debris/ember spawning
   particles.fireZones = [
@@ -57,6 +58,7 @@ const boot = () => {
   const hud = new HUD(r.renderer);
   const minimap = new Minimap();
   const pauseMenu = new PauseMenu();
+  window.__MW_pauseMenu = pauseMenu; // expose for QA
 
   const post = new PostFX(r);
   const demoCam = new DemoCamera();
@@ -83,6 +85,9 @@ const boot = () => {
   window.__MW_SCENE = r.scene;
   window.__MW_CAMERA = r.camera;
   window.__MW_GS = GameState;
+  window.__MW_player = player; // expose for QA
+  window.__MW_weapon = weapon; // expose for QA
+  window.__MW_renderer = r;    // expose for QA
   let _demoOverride = -1;
   window.__MW_DEMO_JUMP = (t) => { _demoOverride = t; };
   const _demoTime = () => (_demoOverride >= 0 ? _demoOverride : GameState.time);
@@ -102,10 +107,16 @@ const boot = () => {
   let _gWasDown = false;
 
   const loop = () => {
-    requestAnimationFrame(loop);
+    try {
     const t0 = performance.now();
     const dt = r.frame();
     GameState.time += dt;
+    window.__MW_frameCounter = (window.__MW_frameCounter || 0) + 1;
+    // Use a practical minimum dt — avoids stalling on zero-delta frames
+    if (dt < 0.001 && window.__MW_frameCounter > 5) {
+      requestAnimationFrame(loop);
+      return;
+    }
 
     if (CFG.demo) {
       const dT = _demoTime();
@@ -119,15 +130,16 @@ const boot = () => {
       post.render();
     } else {
       // live gameplay path
-      // Pause check
-      if (pauseMenu.paused) { return; }
+      // Pause check — also exposed on GameState for qa inspection
+      if (pauseMenu.paused) { GameState.paused = true; requestAnimationFrame(loop); return; }
+      GameState.paused = false;
 
       input.update(dt);
       player.update(dt);
 
       // Respawn: R key when dead (debounce to prevent multi-respawn)
       if (!player.isAlive) {
-        const rDown = input.key('KeyR');
+        const rDown = input.has('KeyR');
         if (rDown && !_rWasDown) {
           player.respawn();
           enemies.startGame();
@@ -144,7 +156,7 @@ const boot = () => {
 
       // Grenade throw on G key (debounced)
       _grenadeCooldown -= dt;
-      const gDown = input.key('KeyG');
+      const gDown = input.has('KeyG');
       if (gDown && !_gWasDown && _grenadeCooldown <= 0 && player.isAlive) {
         _grenadeCooldown = 0.5;
         _grenadeDir.set(0, 0, -1).applyQuaternion(r.camera.quaternion).normalize();
@@ -154,15 +166,16 @@ const boot = () => {
       _gWasDown = gDown;
 
       // Weapon swap: 1=primary, 2=pistol (handled by WeaponSystem)
-      if (input.key('Digit1') && weapon._slot !== 'primary') {
+      if (input.has('Digit1') && weapon._slot !== 'primary') {
         weapon.swapToPrimary();
       }
-      if (input.key('Digit2') && weapon._slot !== 'pistol') {
+      if (input.has('Digit2') && weapon._slot !== 'pistol') {
         weapon.swapToPistol();
       }
       lighting.update(GameState.pos);
       post.update(dt, GameState.time);
       hud.update();
+      audio.update(r.camera); // spatial audio listener
 
       // Grenade physics + explosions (after weapon, before particles)
       updateGrenades(dt, world, particles, fx, audio,
@@ -205,6 +218,19 @@ const boot = () => {
       _frameN = 0;
     }
     if (r.avg) fpsEl.textContent = `${(1000 / r.avg).toFixed(0)} fps`;
+    } catch (err) {
+      // Write to a ring buffer so we can surface it without console-spam.
+      if (!window.__MW_ERRORS) window.__MW_ERRORS = [];
+      const msg = (err && err.message) ? err.message : String(err);
+      const last = window.__MW_ERRORS[window.__MW_ERRORS.length - 1];
+      if (!last || last.msg !== msg || performance.now() - last.t > 2000) {
+        window.__MW_ERRORS.push({ msg, stack: (err && err.stack || '').slice(0, 400), t: performance.now() });
+        if (window.__MW_ERRORS.length > 10) window.__MW_ERRORS.shift();
+        console.warn('[game loop] recovered from error:', msg);
+      }
+    }
+    // Always reschedule — keep the loop alive regardless
+    requestAnimationFrame(loop);
   };
 
     // player audio — bus listeners because PlayerController has no audio reference

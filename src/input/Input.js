@@ -60,25 +60,22 @@ export class Input {
     if (c.requestPointerLock) c.requestPointerLock();
   }
 
-  get key() {
-    const k = this.keys;
-    return (c) => k.has(c);
-  }
+  has(code) { return this.keys.has(code); }
 
   /** A/D + W/S axis, W/S first. */
   get moveVec() {
     let x = 0, z = 0;
-    if (this.key('KeyW')) z += 1;
-    if (this.key('KeyS')) z -= 1;
-    if (this.key('KeyA')) x -= 1;
-    if (this.key('KeyD')) x += 1;
+    if (this.has('KeyW')) z += 1;
+    if (this.has('KeyS')) z -= 1;
+    if (this.has('KeyA')) x -= 1;
+    if (this.has('KeyD')) x += 1;
     if (x && z) { x *= 0.7071; z *= 0.7071; }
     return { x, z };
   }
 
-  get sprint() { return this.key('ShiftLeft') || this.key('ShiftRight'); }
-  get crouch() { return this.key('ControlLeft') || this.key('ControlRight') || this.key('KeyC'); }
-  get jump() { return this.key('Space'); }
+  get sprint() { return this.has('ShiftLeft') || this.has('ShiftRight'); }
+  get crouch() { return this.has('ControlLeft') || this.has('ControlRight') || this.has('KeyC'); }
+  get jump() { return this.has('Space'); }
   get aim() { return this.aimDown; }
 
   /** Consume and reset look delta (called once per frame). */

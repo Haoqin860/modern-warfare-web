@@ -16,22 +16,23 @@ npm run dev
 # open http://localhost:5173/?demo&preset=A
 ```
 
-Controls: `WASD` move · `Mouse` aim · `LMB` fire · `RMB` ADS · `R` reload · `Shift` sprint · `Ctrl/C` crouch · `Space` jump · `Esc` pause.
+Controls: `WASD` move · `Mouse` aim · `LMB` fire · `RMB` ADS · `R` reload · `G` grenade · `1/2` weapon swap · `Shift` sprint · `Ctrl/C` crouch · `Space` jump · `Esc` pause.
 
 ## Architecture
 
 | Module | Path | Responsibility |
 | --- | --- | --- |
-| Renderer | `src/core/Renderer.js` | WebGL2 + TAA, ACES, PCF shadows, dual-scene (world + viewmodel) |
+| Renderer | `src/core/Renderer.js` | WebGL2, PCF shadows, dual-scene (world + viewmodel) |
 | Lighting | `src/core/Lighting.js` | Golden-hour sun, hemisphere fill, PMREM env, sun-follow |
-| PostFX | `src/core/PostFX.js` | Bloom → vignette → color-grade (split-tone) → grain → CA → FXAA, **blind-test presets A/B** |
+| PostFX | `src/core/PostFX.js` | Bloom → **ACES filmic grade** (in-shader) → split-tone → grain → CA → FXAA, **blind-test presets A/B** |
+| Sky | `src/world/Sky.js` | Procedural golden-hour sky dome + HDR sun sprite (bloom source) |
 | Textures | `src/core/TextureAtlas.js` | 100% procedural PBR textures (albedo/normal/rough/AO/height) |
 | World | `src/world/` | War-torn city: ruined buildings, fires, smoke columns, cars, sandbags, collision |
-| Player | `src/player/` | Capsule movement, sprint/crouch/jump, bob, camera recoil, collision resolve |
-| Weapon | `src/weapon/` | Procedural HK416 viewmodel, auto-fire, ADS, reload, casing, tracers |
+| Player | `src/player/` | Capsule movement, sprint/crouch/jump, bob, camera recoil, collision resolve, respawn |
+| Weapon | `src/weapon/` | Procedural HK416 + M9 viewmodels, auto-fire, ADS, reload, casing, tracers, grenades |
 | Enemies | `src/enemies/` | Soldier rigs, wave AI, hit reactions, ragdoll-ish deaths |
 | FX / Particles | `src/fx/` | Muzzle flash, tracers, impacts, explosions, ambient dust/ash/embers |
-| HUD | `src/ui/HUD.js` | DOM overlay: crosshair, ammo, health, waves, kill feed |
+| HUD | `src/ui/` | DOM overlay: crosshair, ammo, health, waves, kill feed, minimap, pause menu |
 | Audio | `src/audio/AudioFX.js` | Procedural WebAudio: gunshots, reloads, explosions, hits |
 
 ## Blind visual QA

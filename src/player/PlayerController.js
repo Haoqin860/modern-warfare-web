@@ -59,6 +59,7 @@ export class PlayerController {
     this.hp = 100;
     this.maxHp = 100;
     this.isAlive = true;
+    this._dmgCooldown = 0;       // invulnerability frames after taking damage
 
     // ---------- per-frame view data ----------
     this._view = { ads: 0, sprint: 0, crouch: 0, moving: false, vel: 0 };
@@ -76,6 +77,9 @@ export class PlayerController {
     if (!this.isAlive) return;
     // safety clamp — long pauses should not explode physics
     if (dt > 0.15) dt = 0.15;
+
+    // Tick damage cooldown (invulnerability frames)
+    if (this._dmgCooldown > 0) this._dmgCooldown -= dt;
 
     const m = CFG.movement;
 
@@ -423,7 +427,9 @@ export class PlayerController {
   /** Deal damage to the player. Emits hurt event; on death emits dead. */
   damage(n) {
     if (!this.isAlive || typeof n !== 'number' || n <= 0) return;
+    if (this._dmgCooldown > 0) return;
     this.hp = Math.max(0, this.hp - n);
+    this._dmgCooldown = 0.4; // invulnerability window
     bus.emit('player:hurt', { hp: this.hp, damage: n });
     if (this.hp <= 0) {
       this.isAlive = false;

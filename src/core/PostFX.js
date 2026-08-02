@@ -43,6 +43,15 @@ const GradeShader = {
 
     float rand(vec2 co) { return fract(sin(dot(co, vec2(12.9898,78.233))) * 43758.5453); }
 
+    // Filmic ACES tonemap (Krzysztof Narkowicz / Narkowicz-style approximation)
+    // applied ONCE here — gives the COD-style highlight rolloff that a purely
+    // linear chain lacks, without double-tone-mapping (renderer.toneMapping is
+    // NoToneMapping so OutputPass adds nothing).
+    vec3 aces(vec3 x) {
+      const float a = 2.51, b = 0.03, c = 2.43, d = 0.59, e = 0.14;
+      return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
+    }
+
     void main() {
       vec2 uv = vUv;
       // chromatic aberration (radial)
@@ -63,6 +72,10 @@ const GradeShader = {
 
       // contrast
       col = (col - 0.5) * contrast + 0.5;
+
+      // ACES filmic tone map (highlight rolloff) — exposure-scaled so the
+      // mid-tones land where a golden-hour scene reads naturally.
+      col = aces(col * 1.05);
 
       // teal shadow split tone
       float sh = max(0.0, 1.0 - luma * 2.5);
@@ -99,10 +112,10 @@ export class PostFX {
       new THREE.Vector2(window.innerWidth, window.innerHeight),
       P.bloom.strength, P.bloom.radius, P.bloom.threshold
     );
-    // Tone mapping + sRGB transfer are handled by the final OutputPass
-    // (which reads renderer.toneMapping). The RenderPass renders to an
-    // off-screen HDR target without applying tone mapping, so there is
-    // no double-application concern.
+    // In-shader ACES (GradeShader above) is the sole filmic tonemap.
+    // We disable the renderer-level tone mapping so OutputPass skips its
+    // ACES pass — otherwise the chain would be: bloom → shader ACES →
+    // creative grade → OutputPass ACES (double-mapped, flattened).
     renderer.toneMapping = THREE.NoToneMapping;
     this.composer.addPass(this.bloomPass);
 
